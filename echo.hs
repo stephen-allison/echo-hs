@@ -7,23 +7,23 @@ import System.IO
 
 main = withSocketsDo $ do
   sock <- listenOn $ PortNumber 5555
-  acceptLoop sock
+  acceptLoop sock echo
 
 
-acceptLoop sock = do
+acceptLoop sock server = do
   (h,_,_) <- accept sock
 
   -- forkIO in in Control.Concurrent
   -- creates a lightweight thread
   -- cf. forkOS
   -- takes an IO () computation
-  forkIO $ serve h
-  acceptLoop sock
+  forkIO $ server h
+  acceptLoop sock server
 
 
-serve :: Handle -> IO ()
-serve h = do
+echo :: Handle -> IO ()
+echo h = do
   msg <- hGetLine h
   hPutStrLn h msg
   hFlush h
-  serve h
+  echo h
