@@ -1,13 +1,18 @@
 import Network            --for sockets
 import Control.Concurrent --for forkIO
+import Control.Monad
 import System.IO
+import Data.Map (Map)
+import qualified Data.Map as Map
 
 -- program to try out haskell for a
 -- very simple socket server.
 
 main = withSocketsDo $ do
+  dataStore <- newEmptyMVar
   sock <- listenOn $ PortNumber 5555
-  acceptLoop sock echo
+  forkIO $ storeServer dataStore []
+  acceptLoop sock (echo dataStore)
 
 
 acceptLoop sock server = do
@@ -21,9 +26,16 @@ acceptLoop sock server = do
   acceptLoop sock server
 
 
-echo :: Handle -> IO ()
-echo h = do
+echo :: MVar (String) -> Handle -> IO ()
+echo dataStore h = do
   msg <- hGetLine h
+  putMVar dataStore $ msg
   hPutStrLn h msg
   hFlush h
-  echo h
+  echo dataStore h
+
+storeServer :: MVar (String) -> [String] -> IO ()
+storeServer dataStore messages = do
+  putStrLn $ "StoreServer: " ++ show messages
+  msg <- takeMVar dataStore
+  storeServer dataStore $ msg : messages
